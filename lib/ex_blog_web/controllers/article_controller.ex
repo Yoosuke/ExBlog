@@ -3,6 +3,10 @@ defmodule ExBlogWeb.ArticleController do
 
   alias ExBlog.Blog
   alias ExBlog.Blog.Article
+  alias ExBlog.Accounts #add
+  alias ExBlog.Accounts.Guardian #add
+
+  plug :is_authorized when action in [:edit, :update, :delete] #add
 
   def index(conn, _params) do
     articles = Blog.list_articles()
@@ -15,7 +19,8 @@ defmodule ExBlogWeb.ArticleController do
   end
 
   def create(conn, %{"article" => article_params}) do
-    case Blog.create_article(article_params) do
+    case Blog.create_article(Guardian.Plug.current_resource(conn), article_params) do
+#    case Blog.create_article(article_params) do
       {:ok, article} ->
         conn
         |> put_flash(:info, "Article created successfully.")
@@ -59,4 +64,21 @@ defmodule ExBlogWeb.ArticleController do
     |> put_flash(:info, "Article deleted successfully.")
     |> redirect(to: Routes.article_path(conn, :index))
   end
+
+  # Current_user can access only own resources
+  # Check current_user's id match article.user.id
+  defp is_authorized(conn, _) do
+    current_user = Accounts.current_user(conn)
+    article = Blog.get_article!(conn.params["id"])
+    if current_user.id == article.user.id do
+      assign(conn, :article, article)
+    else
+      conn
+      |> put_flash(:error, "You can't modify that page")
+      |> redirect(to: Routes.page_path(conn, :index))
+      |> halt()
+    end
+  end
+
+
 end
