@@ -8,6 +8,11 @@ defmodule ExBlog.Accounts do
 
   alias ExBlog.Accounts.User
   alias Comeonin.Bcrypt
+  alias ExBlog.Accounts.Guardian
+
+  def current_user(conn) do
+    Guardian.Plug.current_resource(conn)
+  end
 
   def authenticate_user(email, plain_text_password) do
     query = from u in User, where: u.email == ^email
@@ -34,7 +39,10 @@ defmodule ExBlog.Accounts do
 
   """
   def list_users do
-    Repo.all(User)
+#    Repo.all(User)
+    User
+    |> Repo.all()
+    |> Repo.preload(:articles)
   end
 
   @doc """
@@ -51,7 +59,13 @@ defmodule ExBlog.Accounts do
       ** (Ecto.NoResultsError)
 
   """
-  def get_user!(id), do: Repo.get!(User, id)
+#  def get_user!(id), do: Repo.get!(User, id)
+
+  def get_user!(id) do
+     User
+      |> Repo.get!(id)
+      |> Repo.preload(:articles)
+  end
 
   @doc """
   Creates a user.
